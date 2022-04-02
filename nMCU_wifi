@@ -1,0 +1,166 @@
+// *** STA_MODE ***
+//link: https://www.electronicwings.com/nodemcu/http-server-on-nodemcu-with-arduino-ide 
+
+// ***connect to  wifi ***
+//link: https://roboindia.com/tutorials/NodeMCU-connecting-internet-arduino/
+
+// *** ESP8266 (NodeMCU) post request data to website ***
+//link: https://circuits4you.com/2018/03/10/esp8266-nodemcu-post-request-data-to-website/
+
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+
+#define LEDpin D0
+#define SWITCH D2
+#define ON LOW
+#define OFF HIGH
+
+
+const char *ssid =  "BSNL FTTH HIGH SPEED";     // replace with your wifi ssid and wpa2 key
+const char *pass =  "9436584739";
+
+IPAddress ip(192, 168, 1, 101); //set static ip
+IPAddress gateway(192, 168, 1, 1); //set getteway
+IPAddress subnet(255, 255, 255, 0);//set subnet
+
+
+WiFiClient client;
+ESP8266WebServer server(80);
+
+ 
+void setup() 
+{
+     delay(15000); // Inital Delay 
+       
+     Serial.begin(115200);
+     delay(10);
+     WiFi.config(ip, gateway, subnet);       
+     Serial.println("Connecting to ");
+     Serial.println(ssid); 
+
+     WiFi.begin(ssid, pass); 
+     while (WiFi.status() != WL_CONNECTED) 
+        {
+          delay(500);
+          Serial.print(".");
+        }
+      Serial.println("");
+      Serial.println("WiFi connected");
+      Serial.print("Got IP: ");  Serial.println(WiFi.localIP()); 
+      Serial.print("MAC: ");
+      Serial.println(WiFi.macAddress());
+      
+      
+      pinMode (LEDpin, OUTPUT);
+      pinMode (SWITCH, OUTPUT);
+      
+      control_switch(true);
+      delay(300);
+      control_switch(false);
+      
+
+      server.on("/", handle_OnConnect);
+      server.on("/ledonpage", handle_ledon);
+      server.on("/ledoffpage", handle_ledoff);
+      server.onNotFound(handle_NotFound);
+    
+      server.begin();
+      Serial.println("HTTP server started");
+      
+}
+ 
+void loop() {
+  server.handleClient();
+}
+
+void handle_OnConnect() {
+  server.send(200, "text/html", HomePage()); 
+  Serial.println("HOMEpage");
+}
+
+void handle_ledon() {
+  server.send(200, "text/html", LedOnPage());
+  Serial.println("Onpage");
+  
+  control_switch(true);
+  delay(300);
+  control_switch(false);
+}
+
+void handle_ledoff() {
+  server.send(200, "text/html", LedOffPage()); 
+  Serial.println("offpage");
+  
+  control_switch(true);
+  delay(5000);
+  control_switch(false);
+}
+
+void handle_NotFound(){
+  server.send(404, "text/plain", "Not found");
+}
+
+void control_switch( bool fire){
+  if (fire){
+    digitalWrite(SWITCH, HIGH);
+    digitalWrite(LEDpin, ON);
+  }
+  else{
+    digitalWrite(SWITCH, LOW);
+    digitalWrite(LEDpin, OFF);
+  }
+}
+
+String HomePage(){
+  String ptr = "<!DOCTYPE html>\n";
+  ptr +="<html>\n";
+  ptr +="<head>\n";
+  ptr +="<title>HOME PAGE</title>\n";
+  ptr +="</head>\n";
+  ptr +="<body>\n";
+  ptr +="<h1>TRIGGER LED</h1>\n";
+  ptr +="<p>Click to switch LED on and off.</p>\n";
+  ptr +="<form method=\"get\">\n";
+  ptr +="<input type=\"button\" value=\"TURN LED ON\" onclick=\"window.location.href='/ledonpage'\">\n";
+  ptr +="</form>\n";
+  ptr +="<form method=\"get\">\n";
+  ptr +="<input type=\"button\" value=\"TRUN LED OFF\" onclick=\"window.location.href='/ledoffpage'\">\n";
+  ptr +="</form>\n";
+  ptr +="</body>\n";
+  ptr +="</html>\n";
+  return ptr;
+}
+
+String LedOnPage(){
+  String ptr = "<!DOCTYPE html>\n";
+  ptr +="<html>\n";
+  ptr +="<head>\n";
+  ptr +="<title>LED ON PAGE</title>\n";
+  ptr +="</head>\n";
+  ptr +="<body>\n";
+  ptr +="<h1>LED ON TRIGGERED</h1>\n";
+  ptr +="<p>Click to go to home to turn OFF.</p>\n";
+  ptr +="<form method=\"get\">\n";
+  ptr +="<input type=\"button\" value=\"HOME\" onclick=\"window.location.href='/'\">\n";
+  ptr +="</form>\n";
+  ptr +="</body>\n";
+  ptr +="</html>\n";
+  return ptr;
+}
+
+String LedOffPage(){
+  String ptr = "<!DOCTYPE html>\n";
+  ptr +="<html>\n";
+  ptr +="<head>\n";
+  ptr +="<title>LED OFF PAGE</title>\n";
+  ptr +="</head>\n";
+  ptr +="<body>\n";
+  ptr +="<h1>LED OFF TRIGGERED</h1>\n";
+  ptr +="<p>Click to go to home to turn ON.</p>\n";
+  ptr +="<form method=\"get\">\n";
+  ptr +="<input type=\"button\" value=\"HOME\" onclick=\"window.location.href='/'\">\n";
+  ptr +="</form>\n";
+  ptr +="</body>\n";
+  ptr +="</html>\n";
+  return ptr;
+}
